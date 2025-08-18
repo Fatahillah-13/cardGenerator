@@ -4,23 +4,24 @@ import numpy as np
 import cv2
 import os
 import logging
-logging.basicConfig(level=logging.INFO)
+from datetime import datetime
 
+logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
 # === Font Config ===
 font_config = {
-    "nama": {"path": "Futura-Bold.ttf", "size": 38},
-    "departemen": {"path": "FUTURAMEDIUM.ttf", "size": 36},
-    "level": {"path": "Futura.ttf", "size": 36},
-    "employee_id": {"path": "FUTURAMEDIUM.ttf", "size": 36}
+    "nama": {"path": "Futura-Bold.ttf", "size": 38, "letter_spacing": 4},
+    "departemen": {"path": "FUTURAMEDIUM.TTF", "size": 36, "letter_spacing": 2},
+    "level": {"path": "Futura.ttf", "size": 24, "letter_spacing": 2},
+    "employee_id": {"path": "FUTURAMEDIUM.TTF", "size": 36, "letter_spacing": 2}
 }
 
 spacing_config = {
     "foto_to_nama": 20,
-    "nama_to_departemen": 24,
-    "departemen_to_level": 20,
-    "level_to_employee_id": 20
+    "nama_to_departemen": 34,
+    "departemen_to_level": 24,
+    "level_to_employee_id": 24
 }
 
 def load_font(path, size):
@@ -40,9 +41,9 @@ def print_id_card():
     data = request.get_json()
     logging.info("📥 Received payload: %s", data)
 
-    # Handle both single and batch payloads
     candidates = data if isinstance(data, list) else [data]
     results = []
+    pages = []
 
     for candidate in candidates:
         try:
@@ -51,19 +52,16 @@ def print_id_card():
             level = candidate.get("job_level")
             employee_id = candidate.get("employee_id")
             foto_filename = candidate.get("photo_filename")
-            ctpat = candidate.get("ctpat")
+            card_template = candidate.get("card_template")
 
             # File paths
-            template_path = "Template.png"
-            foto_dir = r"D:\sistem_cetak_idcard\pics\public\storage"
+            template_path = r"C:\apps\Photo ID Card System\pics\public\\" + card_template
+            foto_dir = r"C:\apps\Photo ID Card System\pics\public\storage"
             if not foto_filename.lower().endswith(".jpeg"):
                 foto_filename = foto_filename + ".jpeg"
             foto_path = os.path.join(foto_dir, foto_filename)
-            output_file = f"{employee_id}_idcard.pdf"
-            output_dir = r"D:\sistem_cetak_idcard\pics\public\storage\idcard"
-            output_path = os.path.join(output_dir, output_file)
 
-            # Cek apakah template, folder foto, dan file foto ada
+            # Cek template dan foto
             if not os.path.exists(template_path):
                 results.append({
                     "employee_id": employee_id,
@@ -88,11 +86,10 @@ def print_id_card():
                 })
                 continue
 
-            # Load template
+            # Load template dan cari kotak kuning
             template = Image.open(template_path).convert('RGB')
             template_np = np.array(template)
 
-            # Find yellow rectangle
             target_rgb = np.array([246, 255, 0])
             tolerance = 10
             mask = np.all(np.abs(template_np - target_rgb) <= tolerance, axis=-1).astype(np.uint8) * 255
@@ -108,51 +105,41 @@ def print_id_card():
 
             x, y, w, h = cv2.boundingRect(contours[0])
 
-            if not os.path.exists(foto_path):
-                results.append({
-                    "employee_id": employee_id,
-                    "status": "error",
-                    "message": f"Foto tidak ditemukan: {foto_filename}"
-                })
-                continue
-            
-            print(f"Foto : {foto_filename} ada")  # Tambahan: print jika foto ditemukan
-
-            foto = Image.open(foto_path).resize((w, h))
+            foto = Image.open(foto_path).rotate(-90, expand=True).resize((w, h))
             template.paste(foto, (x, y))
 
             draw = ImageDraw.Draw(template)
 
-            def draw_centered_text(text, y_pos, font):
+            def draw_centered_text(text, y_pos, font, letter_spacing=0):
+                # Draw text with custom letter spacing
+                total_width = 0
+                char_widths = []
+                for char in text:
+                    bbox = draw.textbbox((0, 0), char, font=font)
+                    width = bbox[2] - bbox[0]
+                    char_widths.append(width)
+                    total_width += width
+                total_width += letter_spacing * (len(text) - 1)
+                start_x = x + w // 2 - total_width // 2
+                current_x = start_x
+                for i, char in enumerate(text):
+                    draw.text((current_x, y_pos), char, fill='black', font=font)
+                    current_x += char_widths[i] + letter_spacing
+                # Return height
                 bbox = draw.textbbox((0, 0), text, font=font)
-                text_width = bbox[2] - bbox[0]
-                draw.text((x + w // 2 - text_width // 2, y_pos), text, fill='black', font=font)
                 return bbox[3] - bbox[1]
 
             current_y = y + h + spacing_config["foto_to_nama"]
-            current_y += draw_centered_text(nama, current_y, fonts["nama"]) + spacing_config["nama_to_departemen"]
-            current_y += draw_centered_text(departemen, current_y, fonts["departemen"]) + spacing_config["departemen_to_level"]
-            current_y += draw_centered_text(level, current_y, fonts["level"]) + spacing_config["level_to_employee_id"]
-            draw_centered_text(employee_id, current_y, fonts["employee_id"])
-            
-            template.save(output_path)
-            
-            local_path = output_path
+            current_y += draw_centered_text(nama, current_y, fonts["nama"], font_config["nama"].get("letter_spacing", 0)) + spacing_config["nama_to_departemen"]
+            current_y += draw_centered_text(departemen, current_y, fonts["departemen"], font_config["departemen"].get("letter_spacing", 0)) + spacing_config["departemen_to_level"]
+            current_y += draw_centered_text(level, current_y, fonts["level"], font_config["level"].get("letter_spacing", 0)) + spacing_config["level_to_employee_id"]
+            draw_centered_text(employee_id, current_y, fonts["employee_id"], font_config["employee_id"].get("letter_spacing", 0))
 
-            # Ubah backslash ke slash
-            normalized_path = local_path.replace('\\', '/')
-
-            # Ambil bagian setelah 'public/'
-            relative_path = normalized_path.split('/public/')[-1]
-
-            # Gabungkan dengan base URL
-            base_url = 'http://10.10.19.42:8000/'
-            full_url = base_url + relative_path
-
+            template = template.convert("RGB")
+            pages.append(template)
             results.append({
                 "employee_id": employee_id,
-                "status": "success",
-                "output": full_url,
+                "status": "success"
             })
 
         except Exception as e:
@@ -162,8 +149,29 @@ def print_id_card():
                 "message": str(e)
             })
 
-    return jsonify(results), 200
+    # Simpan semua ID Card ke dalam 1 PDF
+    if pages:
+        output_dir = r"C:\apps\Photo ID Card System\pics\public\storage\idcard"
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        output_filename = f"idcards_batch_{timestamp}.pdf"
+        output_path = os.path.join(output_dir, output_filename)
 
+        pages[0].save(output_path, save_all=True, append_images=pages[1:], format="PDF")
+
+        # Bangun URL
+        normalized_path = output_path.replace("\\", "/")
+        relative_path = normalized_path.split('/public/')[-1]
+        base_url = 'http://10.10.100.193:8400/'
+        full_url = base_url + relative_path
+
+        results.insert(0, {
+            "status": "success",
+            "combined_output": full_url,
+            "total_idcards": len(pages)
+        })
+
+    return jsonify(results), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
