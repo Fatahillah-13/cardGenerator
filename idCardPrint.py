@@ -105,7 +105,7 @@ def print_id_card():
 
             x, y, w, h = cv2.boundingRect(contours[0])
 
-            foto = Image.open(foto_path).rotate(-90, expand=True).resize((w, h))
+            foto = Image.open(foto_path).resize((w, h))
             template.paste(foto, (x, y))
 
             draw = ImageDraw.Draw(template)
