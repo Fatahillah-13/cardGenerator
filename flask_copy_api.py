@@ -8,6 +8,7 @@ app = Flask(__name__)
 # === KONFIGURASI ===
 SOURCE_FOLDER = r"D:\sistem_cetak_idcard\pics\public\storage"
 DEST_FOLDER = r"C:\coba_pindah"
+LOG_FOLDER = r"D:\sistem_cetak_idcard\pics\public\storage\logs"
 
 def format_time(epoch_time):
     return datetime.fromtimestamp(epoch_time).strftime("%Y-%m-%d %H:%M:%S")
@@ -15,13 +16,20 @@ def format_time(epoch_time):
 @app.route('/copy-files', methods=['POST'])
 def copy_files():
     os.makedirs(DEST_FOLDER, exist_ok=True)
-    log_file = os.path.join(SOURCE_FOLDER, f"log_copy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+    log_file = os.path.join(LOG_FOLDER, f"log_copy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
 
     copied_files = []
     skipped_files = []
 
     for filename in os.listdir(SOURCE_FOLDER):
-        if not (filename.lower().endswith(".jpg") or filename.lower().endswith(".jpeg")):
+        name_lower = filename.lower()
+
+        # Hanya file JPG/JPEG
+        if not (name_lower.endswith(".jpg") or name_lower.endswith(".jpeg")):
+            continue
+
+        # Lewati file yang mengandung 'pic_' atau 'cam_'
+        if "pic_" in name_lower or "cam_" in name_lower:
             continue
 
         src = os.path.join(SOURCE_FOLDER, filename)
