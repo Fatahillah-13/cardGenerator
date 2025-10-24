@@ -58,8 +58,8 @@ def print_id_card():
             template_path = r"C:\apps\Photo ID Card System\pics\public\\" + card_template
             foto_dir = r"C:\apps\Photo ID Card System\pics\public\storage"
             root, ext = os.path.splitext(foto_filename)
-            if ext.lower() != ".jpeg":
-                foto_filename = root + ".jpeg"
+            if ext.lower() != ".jpg":
+                foto_filename = root + ".jpg"
             foto_path = os.path.join(foto_dir, foto_filename)
 
             if not foto_filename or not isinstance(foto_filename, str):
