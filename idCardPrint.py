@@ -70,9 +70,9 @@ def print_id_card():
                 })
                 continue
 
-            if not foto_filename.lower().endswith(".jpeg"):
-                foto_filename = foto_filename + ".jpeg"
-            foto_path = os.path.join(foto_dir, foto_filename)
+            # if not foto_filename.lower().endswith(".jpeg"):
+            #     foto_filename = foto_filename + ".jpeg"
+            # foto_path = os.path.join(foto_dir, foto_filename)
 
             # Cek template dan foto
             if not os.path.exists(template_path):
