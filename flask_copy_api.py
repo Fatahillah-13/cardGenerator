@@ -6,9 +6,9 @@ from datetime import datetime
 app = Flask(__name__)
 
 # === KONFIGURASI ===
-SOURCE_FOLDER = r"D:\sistem_cetak_idcard\pics\public\storage"
-DEST_FOLDER = r"C:\coba_pindah"
-LOG_FOLDER = r"D:\sistem_cetak_idcard\pics\public\storage\logs"
+SOURCE_FOLDER = r"C:\apps\Photo ID Card System\pics\public\storage"
+DEST_FOLDER = r"Z:"
+LOG_FOLDER = r"C:\apps\Photo ID Card System\pics\public\storage\logs"
 
 def format_time(epoch_time):
     return datetime.fromtimestamp(epoch_time).strftime("%Y-%m-%d %H:%M:%S")
