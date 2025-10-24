@@ -57,6 +57,19 @@ def print_id_card():
             # File paths
             template_path = r"C:\apps\Photo ID Card System\pics\public\\" + card_template
             foto_dir = r"C:\apps\Photo ID Card System\pics\public\storage"
+            root, ext = os.path.splitext(foto_filename)
+            if ext.lower() != ".jpeg":
+                foto_filename = root + ".jpeg"
+            foto_path = os.path.join(foto_dir, foto_filename)
+
+            if not foto_filename or not isinstance(foto_filename, str):
+                results.append({
+                    "employee_id": employee_id,
+                    "status": "error",
+                    "message": "foto_filename is missing or not a valid string."
+                })
+                continue
+
             if not foto_filename.lower().endswith(".jpeg"):
                 foto_filename = foto_filename + ".jpeg"
             foto_path = os.path.join(foto_dir, foto_filename)
